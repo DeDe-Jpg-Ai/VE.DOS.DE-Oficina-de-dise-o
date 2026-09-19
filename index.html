@@ -1,0 +1,1364 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ve.dos.de : Oficina de Diseño</title>
+<style>
+  /* Arial, con toda la familia declarada bajo un mismo nombre. Sólo local():
+     se usa la Arial instalada en la máquina y no se descarga nada. Los TTF de
+     Monotype no se publican con el sitio, por licencia; donde no haya Arial
+     (Linux, Android) la página cae al respaldo de la pila: Helvetica y la sans
+     serif del sistema, que son de corte parecido. */
+  @font-face{
+    font-family:"Arial Estudio";
+    src:local("Arial Light"), local("Arial-Light");
+    font-weight:300;font-style:normal;font-display:swap;
+  }
+  @font-face{
+    font-family:"Arial Estudio";
+    src:local("Arial Light Italic");
+    font-weight:300;font-style:italic;font-display:swap;
+  }
+  @font-face{
+    font-family:"Arial Estudio";
+    src:local("Arial"), local("ArialMT");
+    font-weight:400;font-style:normal;font-display:swap;
+  }
+  @font-face{
+    font-family:"Arial Estudio";
+    src:local("Arial Italic"), local("Arial-ItalicMT");
+    font-weight:400;font-style:italic;font-display:swap;
+  }
+  @font-face{
+    font-family:"Arial Estudio";
+    src:local("Arial Medium"), local("Arial-Medium");
+    font-weight:500;font-style:normal;font-display:swap;
+  }
+  @font-face{
+    font-family:"Arial Estudio";
+    src:local("Arial Medium Italic");
+    font-weight:500;font-style:italic;font-display:swap;
+  }
+  @font-face{
+    font-family:"Arial Estudio";
+    src:local("Arial Bold"), local("Arial-BoldMT");
+    font-weight:700;font-style:normal;font-display:swap;
+  }
+  @font-face{
+    font-family:"Arial Estudio";
+    src:local("Arial Bold Italic"), local("Arial-BoldItalicMT");
+    font-weight:700;font-style:italic;font-display:swap;
+  }
+  @font-face{
+    font-family:"Arial Estudio";
+    src:local("Arial Black"), local("Arial-Black");
+    font-weight:900;font-style:normal;font-display:swap;
+  }
+  @font-face{
+    font-family:"Arial Estudio";
+    src:local("Arial Black Italic");
+    font-weight:900;font-style:italic;font-display:swap;
+  }
+
+  /* Arial Narrow: misma familia, marcada como condensada. Se pide con
+     font-stretch:condensed donde haga falta apretar el texto. */
+  @font-face{
+    font-family:"Arial Estudio";
+    src:local("Arial Narrow"), local("ArialNarrow");
+    font-weight:400;font-style:normal;font-stretch:condensed;font-display:swap;
+  }
+  @font-face{
+    font-family:"Arial Estudio";
+    src:local("Arial Narrow Italic"), local("ArialNarrow-Italic");
+    font-weight:400;font-style:italic;font-stretch:condensed;font-display:swap;
+  }
+  @font-face{
+    font-family:"Arial Estudio";
+    src:local("Arial Narrow Bold"), local("ArialNarrow-Bold");
+    font-weight:700;font-style:normal;font-stretch:condensed;font-display:swap;
+  }
+  @font-face{
+    font-family:"Arial Estudio";
+    src:local("Arial Narrow Bold Italic"), local("ArialNarrow-BoldItalic");
+    font-weight:700;font-style:italic;font-stretch:condensed;font-display:swap;
+  }
+
+  :root{
+    --bg:#f2f1ef;
+    --ink:#1a1a1a;
+    --faint:#b9b7b3;
+    --frame-w:250px;
+    --frame-h:167px;
+    --thick:6px;
+    --font:"Arial Estudio",Arial,"Helvetica Neue",Helvetica,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font);
+    font-size:11px;
+    letter-spacing:.04em;
+    overflow:hidden;
+  }
+
+  .sheet{
+    position:fixed;
+    inset:22px;
+    border:0;
+    overflow:hidden;
+  }
+
+  /* ---------- HUD ----------
+     Va por encima del mosaico (z 45 contra 30): fecha, logo y servicios son la
+     cáscara fija de la página y siguen visibles al entrar en una temática. La
+     vista de proyecto, en 60, sí los tapa. */
+  .hud{position:absolute;inset:0;z-index:45;pointer-events:none}
+  .hud > *{pointer-events:auto}
+
+  /* El título ya no es el PNG del logo sino texto vivo, en caja alta, con el
+     mismo corte y cuerpo que la lista de servicios. Sin interletrado propio:
+     el que reparte la fuente y nada más. */
+  .title{
+    position:absolute;top:26px;left:50%;
+    transform:translateX(-50%);
+    line-height:1.3;
+    font-family:"Arial Estudio",Arial,Helvetica,sans-serif;
+    font-weight:700;
+    font-size:16pt;
+    letter-spacing:normal;
+  }
+
+  /* Servicios en Arial Bold 20pt. A este cuerpo el bloque cabe en la banda
+     derecha sin tocar la foto que para en el centro, así que vuelve al frente
+     del riel. No captura clics: las fotos de debajo siguen siendo pulsables. */
+  /* Los cinco servicios en un solo renglón, al pie. La fila de fotos cruza en
+     diagonal, así que esta banda baja queda por debajo de su extremo cercano. */
+  /* Columna a la derecha, abajo: es el triángulo que la diagonal deja libre.
+     A media altura le pasaría por encima el tramo derecho de la fila. */
+  .index{
+    position:absolute;right:30px;bottom:90px;
+    text-align:right;
+    pointer-events:none;
+    transition:opacity .22s ease;
+  }
+  /* La foto abierta llega hasta la columna de servicios: a 1280 px el renglón
+     más largo le quedaba 57 px por debajo. Mientras haya una ficha desplegada
+     la lista se retira, igual que el riel se atenúa, y vuelve al cerrarla. */
+  .sheet.card-on .index{opacity:0}
+  .sheet.card-on .index li{pointer-events:none}
+  .index .lead{
+    font-size:12px;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:var(--faint);
+    margin-bottom:18px;
+  }
+  .index ol{list-style:none}
+  .index li{
+    font-family:"Arial Estudio",Arial,Helvetica,sans-serif;
+    font-weight:700;
+    font-size:16pt;
+    line-height:1.3;
+    letter-spacing:-.01em;
+    color:var(--ink);         /* siempre en negro, sin foco que rote */
+    transition:opacity .25s ease;
+    white-space:nowrap;       /* cada servicio, un renglón */
+    pointer-events:auto;      /* la lista sí se pulsa; el resto del nav no */
+    cursor:pointer;
+  }
+  .index li + li{margin-top:.12em}
+  /* El hover se marca con opacidad, no con color, para no reintroducir el gris. */
+  .index li:hover{opacity:.55}
+
+  /* La columna no se mueve al entrar en una temática: se queda abajo a la
+     derecha, igual que en la portada. El mosaico reserva esa banda entera. */
+  .sheet.grid-on .transport{display:none}
+
+  .back{
+    position:absolute;top:26px;right:30px;
+    background:none;border:0;padding:0;
+    display:none;
+    font-family:inherit;font-size:12px;letter-spacing:.08em;
+    color:var(--ink);cursor:pointer;opacity:.55;
+  }
+  .back:hover{opacity:1}
+  .sheet.grid-on .back{display:block}
+
+  .transport{
+    position:absolute;right:30px;bottom:26px;
+    display:flex;gap:16px;align-items:center;
+  }
+  .transport button{
+    background:none;border:0;padding:0;
+    font-size:11px;color:var(--ink);
+    cursor:pointer;line-height:1;opacity:.75;
+    font-family:inherit;
+  }
+  .transport button:hover{opacity:1}
+
+  /* ---------- flujo 3D ---------- */
+  .stage{
+    position:absolute;inset:0;
+    z-index:2;
+    perspective:1400px;
+    perspective-origin:50% 50%;
+  }
+  .track{
+    position:absolute;top:50%;left:50%;
+    transform-style:preserve-3d;
+  }
+  .frame{
+    position:absolute;
+    width:var(--frame-w);
+    height:var(--frame-h);
+    margin:calc(var(--frame-h) / -2) 0 0 calc(var(--frame-w) / -2);
+    transform-style:preserve-3d;
+    backface-visibility:hidden;
+    will-change:transform,opacity;
+  }
+  .frame img{
+    width:100%;height:100%;
+    object-fit:cover;
+    display:block;
+    background:#ddd;
+  }
+  .frame{cursor:pointer}
+
+  /* Canto de la lámina. Con el giro de -45° la cara que queda hacia la cámara
+     es la derecha, así que el canto se levanta desde ese borde hacia atrás y
+     las fotos dejan de leerse como papel sin espesor. */
+  .frame::after{
+    content:"";
+    position:absolute;
+    top:0;right:0;
+    width:var(--thick);
+    height:100%;
+    transform-origin:100% 50%;
+    transform:rotateY(90deg);
+    background:linear-gradient(90deg,#fbfaf8 0%,#e4e2de 55%,#c4c2be 100%);
+  }
+
+  /* ---------- ficha de proyecto ----------
+     No hay telón ni vista aparte: la ficha se ancla a la foto pulsada, que se
+     endereza sin moverse del riel. El JS le fija left/top en cada cuadro. */
+  .pcard{
+    position:absolute;
+    z-index:20;
+    width:250px;        /* provisorio: el JS la iguala al ancho de la foto */
+    line-height:1.7;
+    font-size:13px;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .22s ease;
+  }
+  .pcard.on{opacity:1;pointer-events:auto}
+  /* El título ocupa el renglón entero y empuja "ver proyecto" contra el borde
+     derecho de la foto; como la ficha mide lo mismo que ella, el botón cae
+     justo en su canto y comparte la línea de base del título. */
+  .pcard .head{
+    display:flex;align-items:baseline;justify-content:space-between;gap:20px;
+    font-weight:700;letter-spacing:.02em;font-size:15px;
+  }
+  .pcard .credit{color:var(--faint);text-transform:uppercase;letter-spacing:.1em}
+  .pcard .head button{
+    flex:none;
+    background:none;border:0;padding:0;
+    font-family:inherit;font-size:12px;font-weight:400;letter-spacing:.04em;
+    color:var(--ink);cursor:pointer;opacity:.8;
+    display:inline-flex;gap:7px;align-items:baseline;
+  }
+  .pcard .head button:hover{opacity:1}
+  .pcard .gl{color:var(--faint)}
+
+  /* ---------- mosaico de una temática ----------
+     La fila diagonal es la portada, donde conviven las 21 obras. Al entrar en
+     un área se cambia de vista: aquí las obras se ven todas a la vez. */
+  .gridview{
+    position:absolute;inset:0;z-index:30;
+    background:var(--bg);
+    display:none;
+    grid-template-rows:auto minmax(0,1fr);
+    padding:96px 30px 26px;
+    opacity:0;
+    transition:opacity .28s ease;
+  }
+  .sheet.grid-on .gridview{display:grid}
+  .sheet.grid-on.grid-shown .gridview{opacity:1}
+
+  .gv-head{margin-bottom:30px;margin-right:350px}
+  .gv-title{
+    font-family:"Arial Estudio",Arial,Helvetica,sans-serif;
+    font-weight:700;
+    font-size:26pt;
+    line-height:1.1;
+    letter-spacing:-.015em;
+    color:var(--ink);
+  }
+  .gv-count{
+    margin-top:8px;
+    font-size:8px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--faint);
+  }
+
+  /* El hueco de la derecha es el que ocupa la columna de servicios. Va por
+     margen y no por relleno para que la barra de desplazamiento quede a este
+     lado y no debajo de la columna. */
+  /* Sin barra de desplazamiento: el mosaico se dimensiona para entrar entero
+     en este hueco (ver fitMosaic). */
+  .gv-scroll{overflow:hidden;min-height:0;margin-right:350px}
+  /* Diagramación de afiche: bloques de 4x4 celdas de proporción 1:√2 (la de
+     la hoja A), fotos a sangre entre sí, sin calle, y recortadas a su celda.
+     Las celdas que quedan vacías son parte del dibujo: es el aire que en el
+     afiche ocupaba el texto. Columnas y filas las fija el JS. */
+  .gv-mosaic{display:grid}
+  .gv-item{
+    display:block;width:100%;height:100%;
+    overflow:hidden;
+    background:#e6e4e0;border:0;padding:0;
+    cursor:pointer;
+    /* entran de a una, en cascada, en vez de aparecer todas de golpe */
+    animation:gvIn .7s ease both;
+    animation-delay:calc(var(--i, 0) * 80ms);
+  }
+  @keyframes gvIn{from{opacity:0}to{opacity:1}}
+  .gv-item img{
+    width:100%;height:100%;display:block;
+    object-fit:cover;
+    transition:opacity .3s ease;
+  }
+  .gv-item:hover img{opacity:.78}
+
+  /* ---------- vista de proyecto ----------
+     Aquí sí conviene ocupar la hoja entera: la ficha del riel es una nota al
+     paso, esto es la obra mirada de cerca. Mismo fondo y mismo tono de letra
+     chica que el HUD, para que se lea como otra página del mismo cuaderno. */
+  .psheet{
+    position:absolute;inset:0;z-index:60;
+    background:var(--bg);
+    display:none;
+    grid-template-rows:auto auto minmax(0,1fr) auto;
+    padding:26px 30px 24px;
+    opacity:0;
+    transform:translateY(8px);
+    transition:opacity .26s ease, transform .26s ease;
+  }
+  .psheet.open{display:grid}
+  .psheet.shown{opacity:1;transform:none}
+
+  .ps-top{
+    display:flex;justify-content:space-between;align-items:baseline;
+    gap:24px;
+  }
+  .ps-ref{
+    font-size:8px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--faint);font-variant-numeric:tabular-nums;
+  }
+  .ps-tools{display:flex;gap:18px;align-items:baseline}
+  .ps-tools button{
+    background:none;border:0;padding:0;
+    font-family:inherit;font-size:12px;letter-spacing:.08em;
+    color:var(--ink);cursor:pointer;opacity:.55;
+  }
+  .ps-tools button:hover{opacity:1}
+
+  .ps-head{margin:26px 0 22px}
+  .ps-head h1{
+    font-family:"Arial Estudio",Arial,Helvetica,sans-serif;
+    font-weight:300;
+    font-size:32pt;
+    line-height:1.04;
+    letter-spacing:-.015em;
+    color:var(--ink);
+  }
+  .ps-sub{
+    margin-top:8px;
+    font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--faint);
+  }
+
+  /* Imagen a la izquierda, datos a la derecha. En columna flexible y no en
+     rejilla fija: las obras van de apaisadas a muy verticales, y con una
+     columna de ancho fijo las verticales dejaban medio metro de aire muerto
+     entre la foto y sus datos. Así la ficha se pega siempre a la imagen. */
+  .ps-body{
+    display:flex;
+    align-items:flex-start;
+    gap:44px;
+    min-height:0;
+  }
+  .ps-shot{
+    flex:0 1 auto;
+    min-width:0;
+    height:100%;
+    display:flex;align-items:flex-start;justify-content:flex-start;
+  }
+  .ps-data{flex:0 0 300px}
+  /* contain, no cover: son obras, no se recortan. */
+  .ps-shot img{
+    max-width:100%;max-height:100%;
+    object-fit:contain;
+    display:block;
+    background:#e6e4e0;
+  }
+
+  .ps-data dl{margin:0 0 26px}
+  .ps-data dt{
+    font-size:8px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--faint);
+  }
+  .ps-data dd{
+    font-size:11px;line-height:1.5;color:var(--ink);
+    margin:2px 0 14px;
+  }
+  .ps-blurb{
+    font-size:11px;line-height:1.9;
+    color:#5a5854;
+    max-width:38ch;
+  }
+
+  /* ---------- galería de obra ----------
+     Dos columnas que corren por su cuenta: cada foto conserva su proporción y
+     las alturas se desfasan solas, que es lo que arma el escalonado. El bloque
+     de texto entra como primer elemento de la columna derecha, así el hueco de
+     arriba lo ocupa la palabra y no un espacio muerto. */
+  .psheet.gal-on{grid-template-rows:auto minmax(0,1fr)}
+  .psheet.gal-on .ps-head,
+  .psheet.gal-on .ps-body,
+  .psheet.gal-on .ps-foot{display:none}
+
+  .pgal{
+    display:grid;grid-template-columns:1fr 1fr;
+    gap:26px;
+    margin-top:26px;
+    overflow-y:auto;min-height:0;
+    padding-bottom:34px;
+  }
+  .pgal-col{display:flex;flex-direction:column;gap:26px;min-width:0}
+  .pgal figure{position:relative;margin:0}
+  .pgal img{width:100%;height:auto;display:block;background:#e6e4e0}
+
+  /* El número va dentro de la foto. En difference se invierte contra lo que
+     tenga debajo: negro sobre el cielo blanco, blanco sobre el cuarto oscuro,
+     sin tener que elegir un color por imagen. */
+  .pgal-n{
+    position:absolute;top:10px;left:10px;
+    width:19px;height:19px;border-radius:50%;
+    border:1px solid #fff;color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-size:9px;line-height:1;
+    mix-blend-mode:difference;
+    pointer-events:none;
+  }
+
+  .pgal-num{
+    font-size:11px;color:var(--faint);
+    letter-spacing:.06em;font-variant-numeric:tabular-nums;
+  }
+  .pgal-title{
+    font-family:"Arial Estudio",Arial,Helvetica,sans-serif;
+    font-weight:700;font-size:30pt;line-height:1;letter-spacing:-.02em;
+    margin:2px 0 28px;
+  }
+  .pgal-meta{display:flex;gap:44px;align-items:flex-start}
+  /* Los mismos cuatro datos que la ficha de la vista simple, al cuerpo de la
+     galería. Para saltar entre obras del área están "anterior" y "siguiente"
+     de la barra de arriba, así que esta columna no navega: informa. */
+  .pgal-data{flex:0 0 auto;min-width:154px;margin:0}
+  .pgal-data dt{
+    font-size:9px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--faint);
+  }
+  .pgal-data dd{
+    font-size:11px;line-height:1.5;color:var(--ink);
+    margin:2px 0 14px;
+  }
+  .pgal-data dd:last-child{margin-bottom:0}
+  /* La descripción ocupa el lugar que en la referencia llevaba la lista de
+     palabras. Medida corta: al lado del índice y con el mismo tono de gris
+     que el resto del texto largo de la vista de proyecto. */
+  .pgal-desc{
+    flex:0 1 38ch;
+    font-size:11px;line-height:1.9;
+    color:#5a5854;
+  }
+
+  .ps-foot{margin-top:24px}
+  .ps-footlabel{
+    font-size:8px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--faint);margin-bottom:10px;
+  }
+  .ps-thumbs{display:flex;gap:8px;flex-wrap:wrap}
+  .ps-thumbs button{
+    background:none;border:0;padding:0;
+    width:66px;height:44px;
+    cursor:pointer;opacity:.4;
+    transition:opacity .25s ease;
+  }
+  .ps-thumbs button:hover{opacity:.75}
+  .ps-thumbs button.on{opacity:1}
+  .ps-thumbs img{width:100%;height:100%;object-fit:cover;display:block;background:#e6e4e0}
+
+  /* ---------- portada ----------
+     Lo primero que se ve al abrir: el nombre del estudio, grande y solo en el
+     centro. Un clic funde el fondo y el nombre sube hasta el lugar exacto del
+     título, así la portada se convierte en la página en vez de taparla y
+     desaparecer. */
+  .intro{
+    position:fixed;inset:0;z-index:100;
+    background:var(--bg);
+    cursor:pointer;
+    transition:opacity 1.1s ease;
+  }
+  .intro.out{opacity:0;pointer-events:none}
+
+  /* El nombre va suelto (fuera de .intro) para no fundirse con ella y poder
+     viajar. Mismo cuerpo, corte y altura de línea que .title: al llegar arriba con
+     escala 1 cae encima del título pixel a pixel y el relevo no se nota. */
+  .intro-name{
+    position:fixed;left:0;top:0;z-index:101;
+    font-family:"Arial Estudio",Arial,Helvetica,sans-serif;
+    font-weight:700;font-size:16pt;line-height:1.3;letter-spacing:normal;
+    white-space:nowrap;
+    color:var(--ink);
+    transform-origin:0 0;
+    cursor:pointer;
+    visibility:hidden;          /* hasta que el JS lo ubique */
+  }
+  .intro-name.ready{visibility:visible}
+  .intro-name.fly{transition:transform 1.1s cubic-bezier(.65,0,.35,1)}
+  /* mientras está la portada, el título de verdad espera escondido */
+  body.intro-on .title{visibility:hidden}
+  .intro-map img{
+    width:100%;height:100%;
+    object-fit:cover;object-position:50% 50%;
+    display:block;
+    /* el fondo del PNG es blanco opaco: en multiply toma el tono del papel */
+    mix-blend-mode:multiply;
+  }
+</style>
+</head>
+<body class="intro-on">
+
+<div class="intro" id="intro" role="button" tabindex="0" aria-label="Entrar a los proyectos"></div>
+<div class="intro-name" id="introName" aria-hidden="true">VE.DOS.DE : Oficina de Dise&ntilde;o</div>
+
+<div class="sheet">
+
+  <div class="stage">
+    <div class="track" id="track"></div>
+  </div>
+
+  <div class="hud">
+    <div class="title">VE.DOS.DE : Oficina de Dise&ntilde;o</div>
+
+    <button class="back" id="back">&#9664; Todos los proyectos</button>
+
+    <nav class="index">
+      <div class="lead">servicios</div>
+      <ol id="list"></ol>
+    </nav>
+
+    <div class="transport">
+      <button id="prev" title="anterior">&#9664;</button>
+      <button id="next" title="siguiente">&#9654;</button>
+    </div>
+
+    <div class="pcard" id="pcard">
+      <div class="head">
+        <span><span id="dName"></span>, <span id="dYear"></span></span>
+        <button id="goProject">ver proyecto<span class="gl">&#8599;</span></button>
+      </div>
+      <div id="dPlace"></div>
+      <div id="dScope"></div>
+      <div class="credit" id="dCredit"></div>
+    </div>
+  </div>
+
+  <div class="gridview" id="gridview" aria-hidden="true">
+    <header class="gv-head">
+      <div class="gv-title" id="gvTitle"></div>
+      <div class="gv-count" id="gvCount"></div>
+    </header>
+    <div class="gv-scroll" id="gvScroll">
+      <div class="gv-mosaic" id="gvMosaic"></div>
+    </div>
+  </div>
+
+  <div class="psheet" id="psheet" aria-hidden="true">
+    <div class="ps-top">
+      <span class="ps-ref" id="psRef"></span>
+      <div class="ps-tools">
+        <button id="psPrev">&#9664; anterior</button>
+        <button id="psNext">siguiente &#9654;</button>
+        <button id="psClose">cerrar &#10005;</button>
+      </div>
+    </div>
+
+    <header class="ps-head">
+      <h1 id="psName"></h1>
+      <div class="ps-sub"><span id="psYear"></span> &middot; <span id="psPlace"></span></div>
+    </header>
+
+    <section class="pgal" id="psGal" hidden>
+      <div class="pgal-col" id="psGalA"></div>
+      <div class="pgal-col" id="psGalB">
+        <header class="pgal-head">
+          <div class="pgal-num" id="pgNum"></div>
+          <h1 class="pgal-title" id="pgTitle"></h1>
+          <div class="pgal-meta">
+            <dl class="pgal-data">
+              <dt>año</dt>        <dd id="pgYear"></dd>
+              <dt>lugar</dt>      <dd id="pgPlace"></dd>
+              <dt>área</dt>       <dd id="pgScope"></dd>
+              <dt>referencia</dt> <dd id="pgRef"></dd>
+            </dl>
+            <p class="pgal-desc" id="pgDesc"></p>
+          </div>
+        </header>
+      </div>
+    </section>
+
+    <div class="ps-body">
+      <figure class="ps-shot"><img id="psImg" alt=""></figure>
+      <aside class="ps-data">
+        <dl>
+          <dt>año</dt>        <dd id="psDYear"></dd>
+          <dt>lugar</dt>      <dd id="psDPlace"></dd>
+          <dt>área</dt>       <dd id="psDScope"></dd>
+          <dt>referencia</dt> <dd id="psDRef"></dd>
+        </dl>
+        <p class="ps-blurb" id="psBlurb"></p>
+      </aside>
+    </div>
+
+    <footer class="ps-foot">
+      <div class="ps-footlabel" id="psFootLabel"></div>
+      <div class="ps-thumbs" id="psThumbs"></div>
+    </footer>
+  </div>
+
+</div>
+
+<script>
+// Un servicio por carpeta. `dir` es el nombre de carpeta tal cual está en
+// disco; el nombre visible puede llevar tildes y puntos que la carpeta no
+// tiene. Nombre, año y lugar de cada obra son de RELLENO: reemplazar por los
+// datos reales. El archivo y la carpeta sí son los de verdad.
+const SERVICES = [
+  {
+    label:"Diseño Editorial", code:"ed",
+    // TEXTO DE RELLENO: reemplazar por la descripción real del área.
+    blurb:"Publicaciones donde el ritmo de página ordena el material: retículas que sostienen plano, fotografía y texto sin que ninguno pise al otro.",
+    dir:"fotos/diseno-editorial",
+    works:[
+      {file:"2388697beda4d484101945c0a3ff7348.jpg", name:"Editorial Umbral",     year:"2024", place:"Buenos Aires"},
+      {file:"6d3a0b21239915d1b44bdc609e4fcb45.jpg", name:"Catálogo Bienal",      year:"2022", place:"Buenos Aires"},
+      {file:"71bec00650c3191a688d0286dac663ec.jpg", name:"Cuaderno de Obra",     year:"2023", place:"Córdoba Capital"},
+      {file:"739d21042c0b481252645d57f9e8edf1.jpg", name:"Anuario Colegio",      year:"2021", place:"Rosario, Santa Fe"},
+      {file:"7bbc81200c74e1152efb2d61dc5cc65b.jpg", name:"Revista Contrapiso",   year:"2025", place:"Córdoba Capital"},
+      {file:"a696bf3a3266d958474d992e5fc0e67e.jpg", name:"Monografía Terral",    year:"2024", place:"Mendoza"},
+      {file:"c96328a80d2aacc4099cc943c2a7b494.jpg", name:"Memoria Anual",        year:"2020", place:"Buenos Aires"},
+      {file:"d5780fffc7f53bb463f3494312f655be.jpg", name:"Guía de Materiales",   year:"2023", place:"Córdoba Capital"}
+    ]
+  },
+  {
+    label:"Identidad Visual · Comunicación", code:"iv",
+    // TEXTO DE RELLENO: reemplazar por la descripción real del área.
+    blurb:"Sistemas de marca para estudios y desarrollos: un núcleo estable y piezas que se arman solas a medida que el proyecto crece.",
+    dir:"fotos/identidad-visual",
+    works:[
+      {file:"0c5c5a1dccb35cac0437e2e2364e73ba.jpg", name:"Identidad Terral",     year:"2024", place:"Mendoza"},
+      {file:"171761a5e666b45721eea561eb220a53.jpg", name:"Marca Vértice",        year:"2021", place:"Santiago de Chile"},
+      {file:"5c9b2ead6fc22e77d822fa6313b0ab89.jpg", name:"Sistema Pampa",        year:"2025", place:"Sierra de la Ventana"}
+    ]
+  },
+  {
+    label:"Gráfica Arquitectónica", code:"ga",
+    // TEXTO DE RELLENO: reemplazar por la descripción real del área.
+    blurb:"Señalética y gráfica aplicada que se lee desde el edificio y no sobre él: la pieza toma la lógica material de la obra.",
+    dir:"fotos/grafica-arquitectonica",
+    works:[
+      {file:"1.jpg",                                name:"Pabellón Sur",         year:"2022", place:"Rosario, Santa Fe"},
+      {file:"8cb0803eed8b42d4b8611821b2c5e306.jpg", name:"Centro Cívico",        year:"2019", place:"Río Cuarto, Córdoba"},
+      {file:"d287d8a3af72831f3b6457a0cad8a6fd.jpg", name:"Señalética Mercado",   year:"2023", place:"Córdoba Capital"}
+    ]
+  },
+  {
+    label:"Documentación de Obra", code:"do",
+    // TEXTO DE RELLENO: reemplazar por la descripción real del área.
+    blurb:"Relevamiento sistemático del proceso constructivo, ordenado por etapa para que el archivo siga sirviendo años después de la entrega.",
+    dir:"fotos/documentacion-de-obra",
+    works:[
+      {file:"1f6b53303312c4827108f3c9cb3f9754.jpg", name:"Casa Pedemonte",       year:"2023", place:"Villa Allende, Córdoba"},
+      {file:"3269dd71c822764096ef36376e5b5eb8.jpg", name:"Escuela Los Álamos",   year:"2020", place:"Alta Gracia, Córdoba"},
+      {file:"e06c80063ff43f0674fe8f8268770d76.jpg", name:"Ampliación Sarmiento", year:"2024", place:"Córdoba Capital"},
+      // Única obra con carpeta propia: `shots` la convierte en galería. El
+      // orden va de afuera hacia adentro, del portón al último cuarto.
+      // TEXTO DE RELLENO: año, lugar y palabras clave, a reemplazar.
+      {file:"casa-1/0.jpg", name:"Casa 1", year:"2024", place:"Córdoba Capital",
+       shots:["casa-1/0.jpg","casa-1/faca-a.jpg","casa-1/1.jpg",
+              "casa-1/6.jpg","casa-1/10.jpg","casa-1/12.jpg"],
+       // TEXTO DE RELLENO: escrito mirando las fotos, a reemplazar por la
+       // memoria real de la obra.
+       desc:"Jardín de infantes de sala única por nivel: un volumen blanco " +
+            "bajo cubierta metálica, donde el amarillo aparece sólo donde hay " +
+            "que entrar o subir — el portón, el alero, la escalera. Adentro la " +
+            "riostra de hormigón queda a la vista y la luz baja por lucernarios " +
+            "que lavan las paredes ciegas."}
+    ]
+  },
+  {
+    label:"Fotografía de Arquitectura", code:"fa",
+    // TEXTO DE RELLENO: reemplazar por la descripción real del área.
+    blurb:"Registro del edificio habitado y de la luz que lo define, en series pensadas a la vez para publicación y para archivo.",
+    dir:"fotos/fotografia-arquitectura",
+    works:[
+      {file:"98005aaf536033798bc7ed02ab043b74.jpg", name:"Torre Anecón",         year:"2023", place:"Neuquén"},
+      {file:"c95250175b697d18d41c0995e5393a0a.jpg", name:"Mercado Norte",        year:"2021", place:"Córdoba Capital"},
+      {file:"d38feb072e7abb2b0c327f05e985251e.jpg", name:"Refugio Pampa",        year:"2025", place:"Sierra de la Ventana"},
+      {file:"ea5d403e42ace186db0977ad13aa1a3f.jpg", name:"Casa Los Molles",      year:"2022", place:"Traslasierra, Córdoba"}
+    ]
+  }
+];
+
+// Se aplana una vez: cada obra queda sabiendo de qué servicio viene, para que
+// la ficha pueda mostrar el área sin volver a buscarla.
+SERVICES.forEach(s => s.works.forEach(w => { w.dir = s.dir; w.scope = s.label; }));
+const ALL = SERVICES.flatMap(s => s.works);
+
+// Las carpetas llevan espacios y eñes: hay que escapar la ruta.
+const srcOf = w => encodeURI(w.dir + "/" + w.file);
+
+const COUNT = 137;             // fotogramas vivos en el riel
+const HALF  = (COUNT - 1) / 2;
+
+// Espaciado d(u) = AMP*tanh(u/STEEP) + LIN*u
+//
+// La fila sigue siendo una sola línea densa y pareja, pero con un hueco en el
+// medio por el que las fotos van pasando de una en una. El término lineal es el
+// que mantiene el paso corto dentro de cada tramo; el tanh abre el claro.
+//
+// AMP fija el claro: lo justo para poder mirar la foto que viene, no un vacío.
+// A 1,15 el vecino queda a ~166 px del centro y, descontado el ancho de la
+// lámina, deja unos 70 px de aire limpio alrededor de la que está pasando.
+// Al bajar AMP la fila entera se acorta, así que COUNT sube para compensar y
+// que los extremos sigan llegando a las esquinas.
+const AMP   = 1.15;
+const STEEP = 1.40;
+const LIN   = 0.034;           // paso dentro de cada tramo → ~7,6 px
+
+const KX  = 200;               // px por unidad, eje horizontal
+const KY  = 120;               // idem vertical (la fila sube hacia la derecha)
+const ZSPAN = 480;             // cuánto se hunde la fila de un extremo al otro
+const YAW = -45;               // todos los fotogramas comparten orientación
+
+// En la referencia las fotos menguan hacia el extremo de arriba a la derecha, o
+// sea que la fila se aleja de la cámara de punta a punta — pero el reparto en
+// pantalla se ve parejo y centrado. Las dos cosas juntas no salen solas: la
+// profundidad se fija por la posición en la fila y luego x/y se dividen por el
+// factor de perspectiva, así la proyección respeta el espaciado que pide la
+// curva y sólo el tamaño acusa la distancia.
+
+// La escena se dibujó para 1280x800; todo se reescala para que la fila cruce el
+// encuadre de esquina a esquina sea cual sea la ventana.
+const PERSP = 1400;            // debe coincidir con .stage { perspective }
+const sheet = document.querySelector(".sheet");
+let sheetBox = sheet.getBoundingClientRect();
+
+let unit = 1;
+let frameW = 168;   // ancho de lámina en px, lo que la ficha tiene que igualar
+function fit(){
+  const w = innerWidth, h = innerHeight;
+  unit = Math.max(0.5, Math.min(1.35, Math.min(w / 1280, h / 800)));
+  // 140 px dejaban la banda con el grosor de la referencia, pero las obras
+  // quedaban demasiado chicas para mirarlas. 168 es un 20% más: se ven, y la
+  // banda sólo pasa de 0,078 a 0,094 de su largo.
+  frameW = 168 * unit;
+  document.documentElement.style.setProperty("--frame-w", frameW + "px");
+  document.documentElement.style.setProperty("--frame-h", (113 * unit) + "px");
+  document.documentElement.style.setProperty("--thick",   (5 * unit) + "px");
+  sheetBox = sheet.getBoundingClientRect();
+}
+fit();
+addEventListener("resize", fit);
+
+// El riel recorre el pool con un paso coprimo con su tamaño, para que dos
+// láminas contiguas no caigan en la misma foto y el ciclo no se lea como una
+// banda. Al filtrar cambia el tamaño del pool, así que el paso se recalcula.
+const gcd = (a, b) => b ? gcd(b, a % b) : a;
+const strideFor = n => [7, 5, 3, 2, 1].find(s => s < n && gcd(s, n) === 1) || 1;
+
+// La fila es la portada y siempre lleva las 21 obras: ya no se filtra, entrar
+// en una temática abre su mosaico en otra vista.
+const pool = ALL;
+const stride = strideFor(pool.length);
+const workAt = n => pool[(((n * stride) % pool.length) + pool.length) % pool.length];
+
+const track = document.getElementById("track");
+const frames = [];
+
+for(let i = 0; i < COUNT; i++){
+  const el = document.createElement("div");
+  el.className = "frame";
+  const img = document.createElement("img");
+  img.alt = "";
+  el.appendChild(img);
+  track.appendChild(el);
+  const f = {el, img, slot: i - HALF, seed: i, work: null};
+  f.work = workAt(i);
+  img.src = srcOf(f.work);
+  el.addEventListener("click", () => openDetail(f));
+  frames.push(f);
+}
+
+// El riel avanza a saltos: `step` salta de entero en entero una vez por segundo
+// y `cursor` lo persigue con una caída exponencial, así cada foto se estaciona
+// en el hueco central y descansa ahí el resto del segundo.
+let step = 0;
+let cursor = 0;
+let frozen  = false;     // la ficha abierta detiene el riel
+let feedHi = COUNT - 1;  // último índice servido por delante
+let feedLo = 0;          // ídem por detrás
+
+let openFrame = null;    // lámina desplegada, si hay alguna
+let openMix   = 0;       // 0 = en el riel, 1 = enderezada del todo
+let closing   = false;
+
+// Ancho en pantalla que alcanza la lámina abierta, en múltiplos del fotograma.
+// La escala compensa la perspectiva, así que el ancho final es exactamente
+// --frame-w por este número: con 168 px de lámina, 645 px de foto.
+const OPEN_W = 3.84;
+
+// Cuánto se abre el riel al desplegar una ficha. Se suma a AMP, así que empuja
+// los dos cúmulos hacia sus esquinas y despeja el centro para que la foto y sus
+// datos se lean sin nada encima.
+// El vecino inmediato queda a 516 px del centro; la foto abierta pide 322 de
+// semiancho y él aporta 59 de los suyos, así que con 3,0 sobra el aire.
+const SPREAD = 3.0;
+// La que ocupaba el centro sólo necesita despejar, no huir: va con menos.
+// Su semiancho más el de la foto abierta piden 381 px y 2,1 la manda a 420,
+// de modo que el aumento del 20% sigue entrando sin rozarla.
+const EVICT  = 2.1;
+
+function wrapU(slot){
+  let u = slot - cursor;
+  while(u >  HALF) u -= COUNT;
+  while(u < -HALF) u += COUNT;
+  return u;
+}
+
+function place(){
+  // Lado del que viene la lámina abierta: la que ocupaba el centro se retira
+  // hacia el contrario, porque el ensanche por sí solo no la mueve.
+  const openU   = openFrame ? wrapU(openFrame.slot) : 0;
+  const evictDir = -Math.sign(openU);
+
+  for(const f of frames){
+    // u = distancia con signo respecto al centro, envuelta para reciclar
+    const u = wrapU(f.slot);
+
+    // El tanh abre el hueco central; SPREAD lo ensancha al desplegar una ficha.
+    let d = (AMP + SPREAD * openMix) * Math.tanh(u / STEEP) + LIN * u;
+
+    // tanh(0) = 0, así que el ensanche deja quieta a la lámina del centro justo
+    // donde va a aterrizar la abierta. Se la echa a mano, con un empujón que
+    // vale 1 en el medio y se apaga en |u| = 1 para no romper la fila.
+    if(f !== openFrame && evictDir){
+      d += evictDir * EVICT * openMix * Math.max(0, 1 - Math.abs(u));
+    }
+
+    // La profundidad la marca el sitio en la fila, no d: así el orden de
+    // hundimiento no se altera cuando la fila se aparta.
+    const t = (u + HALF) / (2 * HALF);          // 0 = cerca, 1 = fondo
+    let z = -(30 + t * ZSPAN) * unit;
+    const p = PERSP / (PERSP + Math.abs(z));    // factor de perspectiva
+
+    // Se predivide por p para que la proyección devuelva un paso constante:
+    // la fila queda pareja y centrada, y sólo el tamaño acusa la distancia.
+    let x =  d * KX * unit / p;
+    let y = -d * KY * unit / p;
+
+    // desvanecido en los bordes del riel para que el reciclaje no se note
+    const edge = Math.min(1, (HALF - Math.abs(u)) / 4);
+
+    if(f === openFrame && openMix > 0.001){
+      // La lámina viaja al centro del riel, se endereza y crece: el mismo sitio
+      // donde descansa la foto en curso, venga del cúmulo que venga.
+      const zNear = -30 * unit;
+      const pNear = PERSP / (PERSP + Math.abs(zNear));
+
+      x = x * (1 - openMix);
+      y = y * (1 - openMix);
+      z = z + (zNear - z) * openMix;
+
+      const yaw   = YAW * (1 - openMix);
+      const pitch = 2   * (1 - openMix);
+      const scale = 1 + (OPEN_W / pNear - 1) * openMix;
+
+      f.el.style.transform =
+        `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, ${z.toFixed(2)}px)` +
+        ` rotateY(${yaw.toFixed(2)}deg) rotateX(${pitch.toFixed(2)}deg)` +
+        ` scale(${scale.toFixed(4)})`;
+      f.el.style.opacity = "1";
+      f.el.style.zIndex = "3000";
+      continue;
+    }
+
+    f.el.style.transform =
+      `translate3d(${x.toFixed(2)}px, ${y.toFixed(2)}px, ${z.toFixed(2)}px)` +
+      ` rotateY(${YAW}deg) rotateX(2deg)`;
+    // El resto del riel se atenúa apenas: acompaña, no desaparece.
+    f.el.style.opacity = (edge * (1 - 0.45 * openMix)).toFixed(3);
+    // Las de delante tapan a las del fondo, no al revés.
+    f.el.style.zIndex = String(Math.round(2000 - t * 1000));
+  }
+
+  if(openFrame) placeCard();
+}
+
+function recycle(){
+  // el fotograma que quedó más atrás salta al frente con material nuevo
+  for(const f of frames){
+    let u = f.slot - cursor;
+    if(u < -HALF){
+      f.slot += COUNT;
+      f.seed = ++feedHi;
+      f.work = workAt(f.seed);
+      f.img.src = srcOf(f.work);
+    } else if(u > HALF){
+      f.slot -= COUNT;
+      f.seed = --feedLo;
+      f.work = workAt(f.seed);
+      f.img.src = srcOf(f.work);
+    }
+  }
+}
+
+let last = performance.now();
+function loop(now){
+  const dt = Math.min(64, now - last);
+  last = now;
+
+  // Dentro de una temática la fila está tapada por el mosaico: no tiene sentido
+  // recolocar 137 láminas por cuadro para nada.
+  if(gridOn()){ requestAnimationFrame(loop); return; }
+
+  cursor += (step - cursor) * (1 - Math.exp(-dt / 90));
+
+  const want = (openFrame && !closing) ? 1 : 0;
+  openMix += (want - openMix) * (1 - Math.exp(-dt / 110));
+  if(closing && openMix < 0.004){
+    openMix = 0;
+    openFrame = null;
+    closing = false;
+  }
+
+  recycle();
+  place();
+  requestAnimationFrame(loop);
+}
+
+/* ---------- HUD ---------- */
+/* ---------- servicios ---------- */
+// `code` sigue viviendo en los datos: la vista de proyecto lo usa para su
+// referencia. Aquí, en la columna, no se muestra.
+const list = document.getElementById("list");
+SERVICES.forEach(s => {
+  const li = document.createElement("li");
+  li.textContent = s.label;
+  list.appendChild(li);
+});
+const items = [...list.children];
+
+// Los cinco quedan siempre en negro: no hay foco que rote ni que marque el área
+// abierta. Cuál estás mirando ya lo dice el título del mosaico.
+let picked = -1;
+
+/* ---------- mosaico ---------- */
+const gridview = document.getElementById("gridview");
+const gvMosaic = document.getElementById("gvMosaic");
+const gvScroll = document.getElementById("gvScroll");
+const gridOn = () => sheet.classList.contains("grid-on");
+
+function paintMosaic(){
+  const s = SERVICES[picked];
+  document.getElementById("gvTitle").textContent = s.label;
+  document.getElementById("gvCount").textContent =
+    pad2(s.works.length) + (s.works.length === 1 ? " obra" : " obras");
+
+  gvMosaic.innerHTML = "";
+  s.works.forEach((w, n) => {
+    const b = document.createElement("button");
+    b.className = "gv-item";
+    b.title = w.name;
+    b.style.setProperty("--i", n);
+    const [col, cs, row, rs] = gvSlot(n);
+    b.style.gridColumn = col + " / span " + cs;
+    b.style.gridRow    = row + " / span " + rs;
+
+    const im = document.createElement("img");
+    im.src = srcOf(w);
+    im.alt = w.name;
+    im.loading = "lazy";
+
+    b.append(im);
+    b.addEventListener("click", () => openProject(w));
+    gvMosaic.appendChild(b);
+  });
+  gvScroll.scrollTop = 0;
+}
+
+// Los bloques van uno al lado del otro y todo se escala para entrar en el
+// hueco sin desplazarse: la celda es la más grande que cabe tanto a lo ancho
+// (4 columnas por bloque) como a lo alto (las filas que de verdad se usan).
+const CELL_RATIO = 1.414;
+function fitMosaic(){
+  if(picked < 0) return;
+  const n = SERVICES[picked].works.length;
+  const blocks = Math.ceil(n / GV_SLOTS.length);
+  const cols = blocks * 4;
+  // filas ocupadas: 4 si hay al menos un bloque completo, si no las del
+  // último elemento puesto (3 obras llenan sólo 3 filas)
+  let rows = 0;
+  for(let i = 0; i < n; i++){
+    const [, , row, rs] = gvSlot(i);
+    rows = Math.max(rows, row + rs - 1);
+  }
+  const W = gvScroll.clientWidth, H = gvScroll.clientHeight;
+  const cell = Math.floor(Math.min(W / cols, H / (rows * CELL_RATIO)));
+  gvMosaic.style.gridTemplateColumns = `repeat(${cols}, ${cell}px)`;
+  gvMosaic.style.gridTemplateRows    = `repeat(${rows}, ${Math.floor(cell * CELL_RATIO)}px)`;
+}
+addEventListener("resize", fitMosaic);
+
+// Celdas del afiche, en un bloque de 4 filas por 4 columnas:
+// [columna, ancho, fila, alto]
+//   ┌────┬────┬────┬────┐
+//   │ 1       │ 2       │   dos grandes arriba
+//   │         │         │
+//   ├────┼────┼────┼────┤
+//   │    │ 3  │ 4  │    │   escalera de chicas
+//   ├────┼────┼────┴────┤
+//   │    │    │ 5       │   una apaisada al pie
+//   └────┴────┴─────────┘
+// Cada 5 obras empieza un bloque nuevo, espejado respecto del anterior para
+// que la página no se lea como el mismo módulo repetido.
+const GV_SLOTS = [[1,2,1,2], [3,2,1,2], [2,1,3,1], [3,1,3,1], [3,2,4,1]];
+function gvSlot(n){
+  const block = Math.floor(n / GV_SLOTS.length);
+  let [col, cs, row, rs] = GV_SLOTS[n % GV_SLOTS.length];
+  if(block % 2) col = 6 - col - cs;
+  return [block * 4 + col, cs, row, rs];
+}
+
+function enterGrid(i){
+  picked = i;
+  paintMosaic();
+  sheet.classList.add("grid-on");
+  gridview.setAttribute("aria-hidden", "false");
+  fitMosaic();                      // recién ahora el hueco tiene medidas
+  frozen = true;                    // la fila queda detrás, quieta
+  requestAnimationFrame(() => sheet.classList.add("grid-shown"));
+}
+
+function exitGrid(){
+  if(!gridOn()) return;
+  picked = -1;
+  sheet.classList.remove("grid-on", "grid-shown");
+  gridview.setAttribute("aria-hidden", "true");
+  frozen = false;
+}
+
+function pickService(i){
+  // la ficha del riel y la vista abierta pertenecen al estado anterior
+  closeProject();
+  closeDetail();
+  if(picked === i) return exitGrid();
+  enterGrid(i);
+}
+
+items.forEach((li, i) => li.addEventListener("click", () => pickService(i)));
+document.getElementById("back").addEventListener("click", exitGrid);
+/* ---------- ficha de proyecto ---------- */
+const pcard   = document.getElementById("pcard");
+const dName   = document.getElementById("dName");
+const dYear   = document.getElementById("dYear");
+const dPlace  = document.getElementById("dPlace");
+const dScope  = document.getElementById("dScope");
+const dCredit = document.getElementById("dCredit");
+
+const GAP = 14;   // aire entre la lámina y la ficha
+
+// La ficha persigue a la lámina cuadro a cuadro mientras ésta se endereza.
+function placeCard(){
+  const r = openFrame.el.getBoundingClientRect();
+
+  // La ficha calca el ancho de la foto abierta para que sus dos bordes caigan
+  // sobre los de ella. No se mide el rect: mientras la lámina gira su caja es
+  // más ancha que la imagen, y el ancho final es --frame-w por OPEN_W.
+  const w = frameW * OPEN_W;
+  pcard.style.width = w.toFixed(1) + "px";
+  const h = pcard.offsetHeight;
+
+  let left = r.left + r.width / 2 - sheetBox.left - w / 2;
+  let top  = r.bottom - sheetBox.top + GAP;
+
+  // si no entra debajo, la ficha se pasa arriba de la lámina
+  if(top + h > sheetBox.height - 8) top = r.top - sheetBox.top - h - GAP;
+
+  left = Math.max(8, Math.min(left, sheetBox.width - w - 8));
+  top  = Math.max(8, Math.min(top,  sheetBox.height - h - 8));
+
+  pcard.style.left = left.toFixed(1) + "px";
+  pcard.style.top  = top.toFixed(1)  + "px";
+}
+
+function openDetail(f){
+  if(openFrame === f && !closing) return closeDetail();
+  // al saltar de una lámina a otra, la anterior vuelve al riel y la nueva
+  // arranca el despliegue desde cero
+  if(openFrame && openFrame !== f) openMix = 0;
+
+  const w = f.work;
+  dName.textContent   = w.name;
+  dYear.textContent   = w.year;
+  dPlace.textContent  = w.place;
+  dScope.textContent  = w.scope;
+  dCredit.textContent = "VEDOSDE";
+
+  openFrame = f;
+  closing = false;
+  frozen = true;
+  pcard.classList.add("on");
+  sheet.classList.add("card-on");
+  placeCard();
+}
+
+function closeDetail(){
+  if(!openFrame || closing) return;
+  closing = true;
+  frozen = false;
+  pcard.classList.remove("on");
+  sheet.classList.remove("card-on");
+}
+
+// Cualquier clic fuera de una lámina o de la ficha cierra. Con la vista de
+// proyecto abierta no aplica: allí el clic pertenece a esa página.
+addEventListener("pointerdown", e => {
+  if(!openFrame || projectOpen()) return;
+  if(e.target.closest(".frame") || e.target.closest(".pcard")) return;
+  closeDetail();
+});
+
+/* ---------- vista de proyecto ----------
+   La obra mirada de cerca: imagen sin recortar, ficha técnica y las hermanas
+   de su área al pie, para poder recorrer el área sin volver al riel. */
+const psheet = document.getElementById("psheet");
+const psThumbs = document.getElementById("psThumbs");
+const $ps = id => document.getElementById(id);
+let psWork = null;
+
+const projectOpen = () => psheet.classList.contains("open");
+const svcOf = w => SERVICES.find(s => s.dir === w.dir);
+const pad2  = n => String(n).padStart(2, "0");
+
+// Las fotos de una galería cuelgan de la carpeta del servicio, igual que el
+// archivo suelto de las demás obras.
+const shotsOf = w => (w.shots || []).map(f => encodeURI(w.dir + "/" + f));
+
+// Columna izquierda 1-3-5, derecha 2-4-6: con el texto encabezando la derecha,
+// el desfase entre columnas sale del alto de cada foto y no de una regla.
+function paintGallery(w, s, i){
+  const gal = $ps("psGal"), colA = $ps("psGalA"), colB = $ps("psGalB");
+  const shots = shotsOf(w);
+
+  $ps("pgNum").textContent   = "( " + pad2(i + 1) + " )";
+  $ps("pgTitle").textContent = w.name.toLowerCase();
+
+  $ps("pgYear").textContent  = w.year;
+  $ps("pgPlace").textContent = w.place;
+  $ps("pgScope").textContent = w.scope;
+  $ps("pgRef").textContent   = s.code.toUpperCase() + "·" + pad2(i + 1);
+
+  // Si la obra no trae memoria propia se cae a la del área, que siempre está.
+  $ps("pgDesc").textContent = w.desc || s.blurb;
+
+  // La cabecera es el primer hijo de la derecha y se queda; se barren sólo las
+  // fotos de la vuelta anterior.
+  colA.innerHTML = "";
+  colB.querySelectorAll("figure").forEach(f => f.remove());
+  shots.forEach((src, n) => {
+    const fig = document.createElement("figure");
+    const im = document.createElement("img");
+    im.src = src;
+    im.alt = w.name + ", " + (n + 1) + " de " + shots.length;
+    im.loading = n < 2 ? "eager" : "lazy";
+    const tag = document.createElement("span");
+    tag.className = "pgal-n";
+    tag.textContent = String(n + 1);
+    fig.append(im, tag);
+    (n % 2 ? colB : colA).appendChild(fig);
+  });
+
+  gal.hidden = false;
+  gal.scrollTop = 0;
+}
+
+function paintProject(){
+  const w = psWork, s = svcOf(w);
+  const i = s.works.indexOf(w);
+
+  $ps("psRef").textContent = s.code.toUpperCase() + " / " + pad2(i + 1) + " de " + pad2(s.works.length);
+
+  // Con carpeta de fotos la obra se muestra en galería; con un solo archivo,
+  // en la ficha de siempre.
+  psheet.classList.toggle("gal-on", !!(w.shots && w.shots.length));
+  if(w.shots && w.shots.length) return paintGallery(w, s, i);
+  $ps("psGal").hidden = true;
+
+  $ps("psName").textContent  = w.name;
+  $ps("psYear").textContent  = w.year;
+  $ps("psPlace").textContent = w.place;
+  $ps("psImg").src = srcOf(w);
+  $ps("psImg").alt = w.name;
+
+  $ps("psDYear").textContent  = w.year;
+  $ps("psDPlace").textContent = w.place;
+  $ps("psDScope").textContent = w.scope;
+  $ps("psDRef").textContent   = s.code.toUpperCase() + "·" + pad2(i + 1);
+  $ps("psBlurb").textContent  = s.blurb;
+
+  $ps("psFootLabel").textContent =
+    s.works.length > 1 ? "otras obras de " + s.label.toLowerCase() : "única obra del área";
+
+  psThumbs.innerHTML = "";
+  s.works.forEach(o => {
+    const b = document.createElement("button");
+    if(o === w) b.className = "on";
+    b.title = o.name;
+    const im = document.createElement("img");
+    im.src = srcOf(o);
+    im.alt = o.name;
+    b.appendChild(im);
+    b.addEventListener("click", () => { psWork = o; paintProject(); });
+    psThumbs.appendChild(b);
+  });
+}
+
+function openProject(w){
+  if(!w) return;
+  psWork = w;
+  paintProject();
+  psheet.classList.add("open");
+  psheet.setAttribute("aria-hidden", "false");
+  requestAnimationFrame(() => psheet.classList.add("shown"));
+}
+
+function closeProject(){
+  if(!projectOpen()) return;
+  psheet.classList.remove("shown");
+  setTimeout(() => {
+    psheet.classList.remove("open");
+    psheet.setAttribute("aria-hidden", "true");
+  }, 260);
+}
+
+// Recorre el área sin salir de la vista.
+function stepProject(dir){
+  const s = svcOf(psWork);
+  const i = s.works.indexOf(psWork);
+  psWork = s.works[(i + dir + s.works.length) % s.works.length];
+  paintProject();
+}
+
+$ps("goProject").addEventListener("click", () => openProject(openFrame && openFrame.work));
+$ps("psClose").addEventListener("click", closeProject);
+$ps("psPrev").addEventListener("click", () => stepProject(-1));
+$ps("psNext").addEventListener("click", () => stepProject(1));
+
+/* ---------- portada ----------
+   Mientras está puesta, la rueda y el teclado no mueven la fila de atrás. Se
+   entra con un clic en cualquier lado, o con Enter, espacio o Escape. */
+const intro     = document.getElementById("intro");
+const introName = document.getElementById("introName");
+const introOn = () => !intro.classList.contains("out");
+
+// En la portada el nombre va bastante más grande que en el título; en una
+// pantalla angosta se achica para no pasarse del ancho.
+const NAME_SCALE = 2.2;
+const nameAt = (x, y, s) => `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) scale(${s.toFixed(3)})`;
+
+function layoutIntro(){
+  if(!introOn()) return;
+  const w = introName.offsetWidth, h = introName.offsetHeight;   // a escala 1
+  const s = Math.min(NAME_SCALE, (innerWidth - 32) / w);
+  introName.style.transform = nameAt((innerWidth - w * s) / 2, (innerHeight - h * s) / 2, s);
+  introName.classList.add("ready");
+}
+
+function enterSite(){
+  if(!introOn()) return;
+  intro.classList.add("out");
+  intro.setAttribute("aria-hidden", "true");
+
+  // El destino es el título real: su caja ya trae el centrado y el margen de
+  // la hoja, así que basta con llevar el nombre ahí a escala 1.
+  const t = document.querySelector(".title").getBoundingClientRect();
+  introName.classList.add("fly");
+  introName.style.transform = nameAt(t.left, t.top, 1);
+
+  // Al llegar, el título de verdad toma el relevo y la portada se retira.
+  setTimeout(() => {
+    document.body.classList.remove("intro-on");
+    introName.remove();
+    intro.style.display = "none";
+  }, 1150);
+}
+
+layoutIntro();
+addEventListener("resize", layoutIntro);
+// Si la Arial del sistema llega tarde el ancho cambia: se vuelve a medir.
+document.fonts && document.fonts.ready.then(layoutIntro);
+intro.addEventListener("click", enterSite);
+introName.addEventListener("click", enterSite);
+intro.focus();
+
+/* ---------- transporte ---------- */
+document.getElementById("prev").addEventListener("click", () => { step -= 1; });
+document.getElementById("next").addEventListener("click", () => { step += 1; });
+
+let wheeled = 0;
+addEventListener("wheel", e => {
+  if(frozen || introOn()) return;
+  wheeled += e.deltaY;
+  const jump = Math.trunc(wheeled / 120);
+  if(jump){ step += jump; wheeled -= jump * 120; }
+}, {passive:true});
+
+addEventListener("keydown", e => {
+  if(introOn()){
+    if(e.key === "Enter" || e.key === " " || e.key === "Escape"){ e.preventDefault(); enterSite(); }
+    return;
+  }
+  // Con la vista de proyecto abierta el teclado es suyo: Escape vuelve al riel
+  // y las flechas recorren el área, no el riel de atrás.
+  if(projectOpen()){
+    if(e.key === "Escape")     closeProject();
+    if(e.key === "ArrowRight") stepProject(1);
+    if(e.key === "ArrowLeft")  stepProject(-1);
+    return;
+  }
+  if(gridOn()){ if(e.key === "Escape") exitGrid(); return; }
+  if(e.key === "Escape"){ closeDetail(); return; }
+  if(frozen) return;
+  if(e.key === "ArrowRight") step += 1;
+  if(e.key === "ArrowLeft")  step -= 1;
+});
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
