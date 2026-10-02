@@ -88,6 +88,7 @@
     --bg:#f2f1ef;
     --ink:#1a1a1a;
     --faint:#b9b7b3;
+    --rojo:#b60015;          /* el contorno del servicio señalado */
     --frame-w:250px;
     --frame-h:167px;
     --thick:6px;
@@ -132,6 +133,88 @@
     white-space:nowrap;
   }
 
+  /* El título guarda un mensaje debajo: al pasar el mouse, el nombre se
+     desvanece y aparece el lema en rojo. Las dos frases se superponen sobre el
+     mismo punto, con el lema fuera del flujo, para que la caja no cambie de
+     ancho y el título no se corra al relevarse una por la otra. */
+  .title span{display:block;transition:opacity .28s ease}
+  .title .t-lema{
+    position:absolute;left:50%;top:0;
+    transform:translateX(-50%);
+    white-space:nowrap;
+    text-transform:uppercase;
+    font-style:italic;        /* la oblicua de la propia Arial */
+    letter-spacing:.04em;     /* la caja alta pide un poco de aire */
+    /* vacío, sólo el trazo, en rojo. El grosor es mayor que el de los
+       servicios porque este cuerpo es chico: a 0.022em el contorno quedaba
+       un pelo y no se leía. */
+    color:transparent;
+    -webkit-text-stroke:0.045em var(--rojo);
+    opacity:0;
+  }
+  .title:hover .t-nombre{opacity:0}
+  .title:hover .t-lema{opacity:1}
+  .title{cursor:pointer}       /* el mensaje abre la vista "nosotros" */
+
+  /* ---------- nosotros ----------
+     Otra página del mismo cuaderno: tapa la hoja entera, por encima del
+     mosaico y de la vista de obra. Titular enorme en contorno rojo, como el
+     mensaje que la abre, y el texto en el cuerpo chico de siempre. */
+  .about{
+    position:absolute;inset:0;z-index:70;
+    background:var(--bg);
+    display:none;
+    grid-template-rows:auto auto minmax(0,1fr);
+    padding:26px 30px 26px;
+    opacity:0;
+    transition:opacity .26s ease;
+  }
+  .about.open{display:grid}
+  .about.shown{opacity:1}
+
+  .ab-top{display:flex;justify-content:space-between;align-items:baseline;gap:24px}
+  /* "nosotros" es el rótulo de la vista: a 8px y en el gris claro casi no se
+     leía, así que va más grande y en un gris que sí levanta del fondo. */
+  .ab-ref{
+    font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+    color:#8a8884;
+  }
+  .ab-top button{
+    background:none;border:0;padding:0;
+    font-family:inherit;font-size:12px;letter-spacing:.08em;
+    color:var(--ink);cursor:pointer;opacity:.55;
+  }
+  .ab-top button:hover{opacity:1}
+
+  .ab-head{margin:40px 0 34px}
+  .ab-head h1{
+    font-family:"Arial Estudio",Arial,Helvetica,sans-serif;
+    font-weight:700;font-style:italic;
+    font-size:46pt;line-height:1;
+    text-transform:uppercase;
+    letter-spacing:.01em;
+    color:transparent;
+    -webkit-text-stroke:0.018em var(--rojo);
+  }
+
+  .ab-body{overflow-y:auto;min-height:0;max-width:980px;padding-right:14px}
+  .ab-lead{
+    font-size:15px;line-height:1.75;
+    max-width:52ch;
+    margin-bottom:40px;
+  }
+  .ab-cols{display:grid;grid-template-columns:1fr 1fr;gap:44px}
+  .ab-cols h2{
+    font-size:8px;letter-spacing:.18em;text-transform:uppercase;
+    font-weight:400;color:var(--faint);
+    margin-bottom:8px;
+  }
+  .ab-cols h2 + p{margin-bottom:26px}
+  .ab-cols p{
+    font-size:11px;line-height:1.9;color:#5a5854;
+    max-width:40ch;
+  }
+
   /* Servicios en Arial Bold 20pt. A este cuerpo el bloque cabe en la banda
      derecha sin tocar la foto que para en el centro, así que vuelve al frente
      del riel. No captura clics: las fotos de debajo siguen siendo pulsables. */
@@ -161,18 +244,28 @@
   .index li{
     font-family:"Arial Estudio",Arial,Helvetica,sans-serif;
     font-weight:700;
-    font-size:16pt;
+    font-size:22pt;
     line-height:1.3;
     letter-spacing:-.01em;
-    color:var(--ink);         /* siempre en negro, sin foco que rote */
-    transition:opacity .25s ease;
+    /* En reposo van en negro pleno. */
+    color:var(--ink);
     white-space:nowrap;       /* cada servicio, un renglón */
     pointer-events:auto;      /* la lista sí se pulsa; el resto del nav no */
     cursor:pointer;
+    /* ajustado al texto y corrido contra el margen derecho: así cada renglón
+       mide lo que mide su nombre, y el mouse sólo lo toma sobre las letras y
+       no en el aire que queda a la izquierda */
+    display:block;width:fit-content;margin-left:auto;
+    transition:color .22s ease;
   }
   .index li + li{margin-top:.12em}
-  /* El hover se marca con opacidad, no con color, para no reintroducir el gris. */
-  .index li:hover{opacity:.55}
+  /* Al pasar por encima se vacía: queda sólo el contorno, y en rojo. El
+     grosor va en em para que acompañe al cuerpo, sea el que sea. */
+  .index li:hover{
+    color:transparent;
+    -webkit-text-stroke:0.022em var(--rojo);
+  }
+
 
   /* La columna no se mueve al entrar en una temática: se queda abajo a la
      derecha, igual que en la portada. El mosaico reserva esa banda entera. */
@@ -313,7 +406,7 @@
   .sheet.grid-on .gridview{display:grid}
   .sheet.grid-on.grid-shown .gridview{opacity:1}
 
-  .gv-head{margin-bottom:30px;margin-right:350px}
+  .gv-head{margin-bottom:30px;margin-right:620px}
   .gv-title{
     font-family:"Arial Estudio",Arial,Helvetica,sans-serif;
     font-weight:700;
@@ -333,7 +426,7 @@
      lado y no debajo de la columna. */
   /* Sin barra de desplazamiento: el mosaico se dimensiona para entrar entero
      en este hueco (ver fitMosaic). */
-  .gv-scroll{overflow:hidden;min-height:0;margin-right:350px}
+  .gv-scroll{overflow:hidden;min-height:0;margin-right:620px}
   /* Diagramación de afiche: bloques de 4x4 celdas de proporción 1:√2 (la de
      la hoja A), fotos a sangre entre sí, sin calle, y recortadas a su celda.
      Las celdas que quedan vacías son parte del dibujo: es el aire que en el
@@ -545,8 +638,8 @@
     /* la lista de servicios se acuesta contra el borde inferior y, dentro de
        una temática, se va: ahí manda el mosaico y ya está el botón de volver */
     .index{right:16px;bottom:54px}
+    .index li{font-size:13pt}
     .index .lead{font-size:9px;margin-bottom:10px}
-    .index li{font-size:11pt}
     .sheet.grid-on .index{display:none}
 
     .back{top:14px;right:16px;font-size:11px}
@@ -584,6 +677,14 @@
        la suya propia */
     .psheet.gal-on{grid-template-rows:auto auto}
     .pgal{overflow:visible}
+
+    /* nosotros: una columna y titular al cuerpo de la pantalla */
+    .about{padding:16px}
+    .ab-head{margin:24px 0 22px}
+    .ab-head h1{font-size:23pt}
+    .ab-lead{font-size:13px;margin-bottom:28px}
+    .ab-cols{grid-template-columns:1fr;gap:26px}
+    .ab-cols p{max-width:none}
   }
 
   /* ---------- portada ----------
@@ -637,7 +738,10 @@
   </div>
 
   <div class="hud">
-    <div class="title">VE.DOS.DE : Oficina de Dise&ntilde;o</div>
+    <div class="title">
+      <span class="t-nombre">VE.DOS.DE : Oficina de Dise&ntilde;o</span>
+      <span class="t-lema" aria-hidden="true">somos all detalles</span>
+    </div>
 
     <button class="back" id="back">&#9664; Todos los proyectos</button>
 
@@ -727,6 +831,55 @@
       <div class="ps-footlabel" id="psFootLabel"></div>
       <div class="ps-thumbs" id="psThumbs"></div>
     </footer>
+  </div>
+
+  <!-- Nosotros: se abre desde el mensaje escondido en el título. Todo el texto
+       de abajo es DE RELLENO, a reemplazar por el del estudio. -->
+  <div class="about" id="about" aria-hidden="true">
+    <div class="ab-top">
+      <span class="ab-ref">nosotros</span>
+      <button id="abClose">cerrar &#10005;</button>
+    </div>
+
+    <header class="ab-head">
+      <h1>somos all detalles</h1>
+    </header>
+
+    <div class="ab-body">
+      <p class="ab-lead">
+        TEXTO DE RELLENO. Somos una oficina de dise&ntilde;o que trabaja en el
+        cruce entre la arquitectura y la gr&aacute;fica: el plano, la p&aacute;gina
+        y la obra construida como partes de un mismo relato.
+      </p>
+
+      <div class="ab-cols">
+        <div>
+          <h2>C&oacute;mo trabajamos</h2>
+          <p>
+            TEXTO DE RELLENO. Cada encargo empieza por entender el material con
+            el que hay que lidiar: una obra a medio terminar, un archivo de
+            fotos sin ordenar, una marca que creci&oacute; sin sistema.
+          </p>
+          <p>
+            TEXTO DE RELLENO. De ah&iacute; sale una estructura, y de la
+            estructura, las piezas. Primero el orden, despu&eacute;s la forma.
+          </p>
+        </div>
+        <div>
+          <h2>Con qui&eacute;nes</h2>
+          <p>
+            TEXTO DE RELLENO. Estudios de arquitectura, desarrollistas,
+            instituciones y oficinas p&uacute;blicas, en proyectos que van de la
+            pieza suelta al sistema completo.
+          </p>
+          <h2>D&oacute;nde</h2>
+          <p>
+            TEXTO DE RELLENO. C&oacute;rdoba, Argentina. Trabajamos tambi&eacute;n
+            a distancia, con obras en el pa&iacute;s y en la regi&oacute;n.
+          </p>
+        </div>
+      </div>
+    </div>
   </div>
 
 </div>
@@ -834,7 +987,7 @@ function tic(){
 // datos reales. El archivo y la carpeta sí son los de verdad.
 const SERVICES = [
   {
-    label:"Diseño Editorial", code:"ed",
+    label:"Diseño Editorial", code:"ed", color:"#e5331f",
     // TEXTO DE RELLENO: reemplazar por la descripción real del área.
     blurb:"Publicaciones donde el ritmo de página ordena el material: retículas que sostienen plano, fotografía y texto sin que ninguno pise al otro.",
     dir:"fotos/diseno-editorial",
@@ -850,7 +1003,7 @@ const SERVICES = [
     ]
   },
   {
-    label:"Identidad Visual · Comunicación", code:"iv",
+    label:"Identidad Visual · Comunicación", code:"iv", color:"#1d4ed8",
     // TEXTO DE RELLENO: reemplazar por la descripción real del área.
     blurb:"Sistemas de marca para estudios y desarrollos: un núcleo estable y piezas que se arman solas a medida que el proyecto crece.",
     dir:"fotos/identidad-visual",
@@ -861,7 +1014,7 @@ const SERVICES = [
     ]
   },
   {
-    label:"Gráfica Arquitectónica", code:"ga",
+    label:"Gráfica Arquitectónica", code:"ga", color:"#0f8a5f",
     // TEXTO DE RELLENO: reemplazar por la descripción real del área.
     blurb:"Señalética y gráfica aplicada que se lee desde el edificio y no sobre él: la pieza toma la lógica material de la obra.",
     dir:"fotos/grafica-arquitectonica",
@@ -872,7 +1025,7 @@ const SERVICES = [
     ]
   },
   {
-    label:"Documentación de Obra", code:"do",
+    label:"Documentación de Obra", code:"do", color:"#e07a00",
     // TEXTO DE RELLENO: reemplazar por la descripción real del área.
     blurb:"Relevamiento sistemático del proceso constructivo, ordenado por etapa para que el archivo siga sirviendo años después de la entrega.",
     dir:"fotos/documentacion-de-obra",
@@ -896,7 +1049,7 @@ const SERVICES = [
     ]
   },
   {
-    label:"Fotografía de Arquitectura", code:"fa",
+    label:"Fotografía de Arquitectura", code:"fa", color:"#7c3aed",
     // TEXTO DE RELLENO: reemplazar por la descripción real del área.
     blurb:"Registro del edificio habitado y de la luz que lo define, en series pensadas a la vez para publicación y para archivo.",
     dir:"fotos/fotografia-arquitectura",
@@ -1172,6 +1325,30 @@ SERVICES.forEach(s => {
 });
 const items = [...list.children];
 
+/* ---------- cuerpo de los servicios ----------
+   Los cinco van al mismo cuerpo, y ese cuerpo es el más grande que entra: lo
+   fija el nombre más largo, porque es el primero que toca el borde de la
+   banda. Del otro lado está el mosaico, así que de ahí no se pasa.
+
+   Se mide cada renglón a un cuerpo patrón de 100 px y se toma el menor de los
+   topes. El 10% de retiro es para que el más largo no quede pegado al borde. */
+const SERV = {max: 92, banda: 560};   // en píxeles
+
+function ajustarServicios(){
+  const disponible = innerWidth <= 760 ? innerWidth - 32 : SERV.banda;
+  let cuerpo = SERV.max;
+  items.forEach(li => {
+    li.style.fontSize = "100px";
+    const medido = li.scrollWidth;
+    if(medido) cuerpo = Math.min(cuerpo, 100 * disponible / medido * 0.9);
+  });
+  items.forEach(li => { li.style.fontSize = cuerpo.toFixed(2) + "px"; });
+}
+ajustarServicios();
+addEventListener("resize", ajustarServicios);
+document.fonts && document.fonts.ready.then(ajustarServicios);
+
+
 // Los cinco quedan siempre en negro: no hay foco que rote ni que marque el área
 // abierta. Cuál estás mirando ya lo dice el título del mosaico.
 let picked = -1;
@@ -1363,7 +1540,7 @@ function closeDetail(){
 // Cualquier clic fuera de una lámina o de la ficha cierra. Con la vista de
 // proyecto abierta no aplica: allí el clic pertenece a esa página.
 addEventListener("pointerdown", e => {
-  if(!openFrame || projectOpen()) return;
+  if(!openFrame || projectOpen() || aboutOpen()) return;
   if(e.target.closest(".frame") || e.target.closest(".pcard")) return;
   closeDetail();
 });
@@ -1588,7 +1765,7 @@ document.getElementById("next").addEventListener("click", () => { step += 1; });
 
 let wheeled = 0;
 addEventListener("wheel", e => {
-  if(frozen || introOn()) return;
+  if(frozen || introOn() || aboutOpen()) return;
   wheeled += e.deltaY;
   const jump = Math.trunc(wheeled / 120);
   if(jump){ step += jump; wheeled -= jump * 120; }
@@ -1623,6 +1800,7 @@ addEventListener("keydown", e => {
     enterSite();
     return;
   }
+  if(aboutOpen()){ if(e.key === "Escape") closeAbout(); return; }
   // Con la vista de proyecto abierta el teclado es suyo: Escape vuelve al riel
   // y las flechas recorren el área, no el riel de atrás.
   if(projectOpen()){
@@ -1637,6 +1815,34 @@ addEventListener("keydown", e => {
   if(e.key === "ArrowRight") step += 1;
   if(e.key === "ArrowLeft")  step -= 1;
 });
+
+/* ---------- nosotros ----------
+   La abre el mensaje escondido en el título y tapa todo lo demás: mientras
+   está puesta, el riel queda quieto detrás. */
+const about = document.getElementById("about");
+const aboutOpen = () => about.classList.contains("open");
+
+function openAbout(){
+  if(aboutOpen()) return;
+  about.classList.add("open");
+  about.setAttribute("aria-hidden", "false");
+  frozen = true;
+  requestAnimationFrame(() => about.classList.add("shown"));
+}
+
+function closeAbout(){
+  if(!aboutOpen()) return;
+  about.classList.remove("shown");
+  // el riel se devuelve sólo si no lo tenía tomado otra vista
+  frozen = gridOn() || !!openFrame;
+  setTimeout(() => {
+    about.classList.remove("open");
+    about.setAttribute("aria-hidden", "true");
+  }, 260);
+}
+
+document.querySelector(".title").addEventListener("click", openAbout);
+document.getElementById("abClose").addEventListener("click", closeAbout);
 
 requestAnimationFrame(loop);
 </script>
