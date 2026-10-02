@@ -129,6 +129,7 @@
     font-weight:700;
     font-size:16pt;
     letter-spacing:normal;
+    white-space:nowrap;
   }
 
   /* Servicios en Arial Bold 20pt. A este cuerpo el bloque cabe en la banda
@@ -188,9 +189,33 @@
   .sheet.grid-on .back{display:block}
 
   .transport{
-    position:absolute;right:30px;bottom:26px;
+    position:absolute;right:30px;bottom:48px;
     display:flex;gap:16px;align-items:center;
   }
+
+  /* Interruptor del audio, debajo de las flechas. Al cuerpo de la letra chica
+     del sitio: está para encontrarlo cuando se lo busca, no para llamar la
+     atención. Apagado, se apaga también a la vista. */
+  .sound{
+    position:absolute;right:30px;bottom:24px;
+    background:none;border:0;padding:0;
+    font-family:inherit;
+    font-size:8px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--ink);cursor:pointer;
+    display:flex;gap:7px;align-items:center;
+    transition:opacity .2s ease;
+  }
+  .sound:hover{opacity:1}
+  .sound[aria-pressed="true"]{opacity:.75}
+  .sound[aria-pressed="false"]{opacity:.4;color:var(--faint)}
+  /* el punto: lleno con sonido, hueco en silencio */
+  .sound .led{
+    width:7px;height:7px;border-radius:50%;
+    border:1px solid currentColor;
+    background:currentColor;
+  }
+  .sound[aria-pressed="false"] .led{background:none}
+  .sheet.grid-on .sound{display:none}
   .transport button{
     background:none;border:0;padding:0;
     font-size:11px;color:var(--ink);
@@ -513,7 +538,7 @@
     .sheet{inset:12px}
 
     /* en un renglón o no entra: partido, se le monta al botón de volver */
-    .title{top:14px;font-size:10pt;white-space:nowrap}
+    .title{top:14px;font-size:10pt}
     /* dentro de una temática el encabezado ya es el nombre del servicio */
     .sheet.grid-on .title{display:none}
 
@@ -525,7 +550,8 @@
     .sheet.grid-on .index{display:none}
 
     .back{top:14px;right:16px;font-size:11px}
-    .transport{right:16px;bottom:14px;gap:22px}
+    .transport{right:16px;bottom:36px;gap:22px}
+    .sound{right:16px;bottom:12px}
     .transport button{font-size:15px}   /* blanco de toque más grande */
 
     /* el mosaico toma el ancho entero; los bloques del afiche se apilan y la
@@ -625,6 +651,10 @@
       <button id="next" title="siguiente">&#9654;</button>
     </div>
 
+    <button class="sound" id="sound" aria-pressed="true" title="Sonido">
+      <span class="led"></span>sonido
+    </button>
+
     <div class="pcard" id="pcard">
       <div class="head">
         <span><span id="dName"></span>, <span id="dYear"></span></span>
@@ -718,10 +748,84 @@ const sfx = {};
 for(const [nombre, o] of Object.entries(SONIDOS)){
   sfx[nombre] = new Howl({src:[o.src], volume:o.volume ?? 1, preload:true});
 }
+/* Interruptor general. Viene encendido, y la elección queda guardada en el
+   navegador para la próxima visita. Si el navegador no deja guardar nada
+   —ventana privada, permisos— no pasa nada: arranca encendido y listo. */
+let audioOn = true;
+try{ audioOn = localStorage.getItem("vd-sonido") !== "0"; }catch(e){}
+
+function marcarSonido(){
+  const b = document.getElementById("sound");
+  if(b) b.setAttribute("aria-pressed", audioOn ? "true" : "false");
+}
+
+function alternarSonido(){
+  audioOn = !audioOn;
+  try{ localStorage.setItem("vd-sonido", audioOn ? "1" : "0"); }catch(e){}
+  marcarSonido();
+  if(audioOn) tic();        // un toque corto para saber que volvió
+}
+
 // Nunca frena a la página: si un sonido falta o el navegador lo rechaza, sigue.
 function sonar(nombre){
+  if(!audioOn) return;
   const s = sfx[nombre];
   if(s) try{ s.play(); }catch(e){}
+}
+
+/* ---------- el clic de la fila ----------
+   El sonido de cada foto que pasa no es un archivo: se arma en el momento con
+   el sintetizador del navegador, el mismo motor que usa Howler por debajo.
+   Conviene así porque es un toque brevísimo que se repite mucho, y de este
+   modo no pesa nada, no hay que esperar a que cargue y se puede afinar al
+   detalle desde acá.
+
+   La receta es la de los toques de interfaz finos: una onda sin aristas, un
+   golpe muy corto, la altura que cae apenas y el filo alto recortado. Nada de
+   chasquido seco. El volumen es bajo a propósito: tiene que acompañar el
+   movimiento, no anunciarse. */
+const TIC = {
+  alto:    760,    // altura de arranque, en hercios
+  caida:   0.88,   // a cuánto baja esa altura mientras suena
+  volumen: 0.022,  // de 0 a 1
+  ataque:  0.018,  // segundos hasta el pico: cuanto más largo, menos golpe
+  cola:    0.2,    // segundos hasta apagarse
+  filtro:  1500,   // se recorta de acá para arriba, para quitarle filo
+  minimo:  0.05    // separación mínima entre dos toques, en segundos
+};
+
+let ultimoTic = 0;
+function tic(){
+  if(!audioOn) return;
+  const ctx = window.Howler && Howler.ctx;
+  if(!ctx || ctx.state !== "running") return;     // todavía sin permiso de audio
+
+  const t = ctx.currentTime;
+  if(t - ultimoTic < TIC.minimo) return;          // en un barrido rápido, no ametralla
+  ultimoTic = t;
+
+  const osc = ctx.createOscillator();
+  const filtro = ctx.createBiquadFilter();
+  const vol = ctx.createGain();
+
+  // Cada toque se desafina un poco: dos iguales seguidos suenan a máquina.
+  const alto = TIC.alto * (0.985 + Math.random() * 0.03);
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(alto, t);
+  osc.frequency.exponentialRampToValueAtTime(alto * TIC.caida, t + TIC.cola);
+
+  filtro.type = "lowpass";
+  filtro.frequency.value = TIC.filtro;
+
+  // En rampas exponenciales el cero no existe: se arranca y se termina en un
+  // valor mínimo, que a esta altura ya es silencio.
+  vol.gain.setValueAtTime(0.0001, t);
+  vol.gain.exponentialRampToValueAtTime(TIC.volumen, t + TIC.ataque);
+  vol.gain.exponentialRampToValueAtTime(0.0001, t + TIC.cola);
+
+  osc.connect(filtro).connect(vol).connect(ctx.destination);
+  osc.start(t);
+  osc.stop(t + TIC.cola + 0.02);
 }
 
 // Un servicio por carpeta. `dir` es el nombre de carpeta tal cual está en
@@ -1022,6 +1126,7 @@ function recycle(){
   }
 }
 
+let ultimoCentro = 0;    // última foto que quedó en el centro
 let last = performance.now();
 function loop(now){
   const dt = Math.min(64, now - last);
@@ -1032,6 +1137,15 @@ function loop(now){
   if(gridOn()){ requestAnimationFrame(loop); return; }
 
   cursor += (step - cursor) * (1 - Math.exp(-dt / 90));
+
+  // El toque va atado al riel y no a la tecla: suena cuando una foto cruza el
+  // centro, venga de la rueda, del teclado, de los botones o del dedo. Y no
+  // suena de más: mientras la fila descansa, el redondeo no cambia.
+  const enCentro = Math.round(cursor);
+  if(enCentro !== ultimoCentro){
+    ultimoCentro = enCentro;
+    if(!introOn()) tic();
+  }
 
   const want = (openFrame && !closing) ? 1 : 0;
   openMix += (want - openMix) * (1 - Math.exp(-dt / 110));
@@ -1392,16 +1506,34 @@ const intro     = document.getElementById("intro");
 const introName = document.getElementById("introName");
 const introOn = () => !intro.classList.contains("out");
 
-// En la portada el nombre va bastante más grande que en el título; en una
-// pantalla angosta se achica para no pasarse del ancho.
-const NAME_SCALE = 2.2;
+/* ---------- titulares a sangre ----------
+   El cuerpo sale de una medición, no de un número elegido: se compone el
+   renglón a 100 px, se mide lo que ocupa y se regla a ese tamaño por el ancho
+   que tiene que llenar. Así el titular toca los dos bordes en cualquier
+   pantalla, que es lo que le da el carácter de cartel. */
+function ajustarA(el, ancho){
+  // sin ancho válido no hay nada que ajustar: pasa cuando la pestaña todavía
+  // no tiene medidas, y un cuerpo negativo dejaría el renglón roto
+  if(!el || !(ancho > 0)) return 0;
+  el.style.fontSize = "100px";
+  const medido = el.scrollWidth;
+  if(!medido) return 0;
+  const cuerpo = 100 * ancho / medido;
+  el.style.fontSize = cuerpo.toFixed(2) + "px";
+  return cuerpo;
+}
+
+// El cuerpo grande vive sólo en la portada: el nombre se compone al tamaño
+// que hace que el renglón toque los dos bordes. El título del sitio, en
+// cambio, queda siempre en su cuerpo chico de siempre.
+const MARGEN_PORTADA = 44;       // el aire a cada lado, como el de la hoja
 const nameAt = (x, y, s) => `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) scale(${s.toFixed(3)})`;
 
 function layoutIntro(){
   if(!introOn()) return;
-  const w = introName.offsetWidth, h = introName.offsetHeight;   // a escala 1
-  const s = Math.min(NAME_SCALE, (innerWidth - 32) / w);
-  introName.style.transform = nameAt((innerWidth - w * s) / 2, (innerHeight - h * s) / 2, s);
+  if(!ajustarA(introName, innerWidth - MARGEN_PORTADA)) return;
+  const w = introName.offsetWidth, h = introName.offsetHeight;
+  introName.style.transform = nameAt((innerWidth - w) / 2, (innerHeight - h) / 2, 1);
   introName.classList.add("ready");
 }
 
@@ -1416,11 +1548,19 @@ function enterSite(){
   intro.classList.add("out");
   intro.setAttribute("aria-hidden", "true");
 
-  // El destino es el título real: su caja ya trae el centrado y el margen de
-  // la hoja, así que basta con llevar el nombre ahí a escala 1.
-  const t = document.querySelector(".title").getBoundingClientRect();
+  // El destino es el título real, que es mucho más chico: el nombre viaja
+  // hasta su esquina y en el camino se achica hasta igualarlo. La escala sale
+  // de la razón entre los dos cuerpos, así que llegan a medir lo mismo.
+  const tEl = document.querySelector(".title");
+  const t = tEl.getBoundingClientRect();
+  // La razón sale de los anchos medidos y no de los cuerpos: el mismo texto
+  // compuesto en 66 px y reducido no mide igual que compuesto en 16 pt, y esos
+  // dos píxeles de diferencia se verían como un salto al terminar el vuelo.
+  const propio = introName.getBoundingClientRect().width;
+  const escala = propio ? t.width / propio
+                        : parseFloat(getComputedStyle(tEl).fontSize) / parseFloat(getComputedStyle(introName).fontSize);
   introName.classList.add("fly");
-  introName.style.transform = nameAt(t.left, t.top, 1);
+  introName.style.transform = nameAt(t.left, t.top, escala);
 
   // Al llegar, el título de verdad toma el relevo y la portada se retira.
   setTimeout(() => {
@@ -1439,6 +1579,10 @@ introName.addEventListener("click", enterSite);
 intro.focus();
 
 /* ---------- transporte ---------- */
+// el interruptor del audio, debajo de las flechas
+marcarSonido();
+document.getElementById("sound").addEventListener("click", alternarSonido);
+
 document.getElementById("prev").addEventListener("click", () => { step -= 1; });
 document.getElementById("next").addEventListener("click", () => { step += 1; });
 
