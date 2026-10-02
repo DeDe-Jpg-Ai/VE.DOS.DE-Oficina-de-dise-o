@@ -1,4 +1,4 @@
-# ve.dos.de : Oficina de Diseño
+# V2D : OFICINA DE DISEÑO
 
 Sitio del estudio. Es una sola página, sin dependencias ni compilación: se
 abre `index.html` y funciona.
