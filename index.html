@@ -429,6 +429,9 @@
   .psheet.gal-on .ps-body,
   .psheet.gal-on .ps-foot{display:none}
 
+  /* con obra de una sola foto la galería se apaga con el atributo hidden, que
+     por sí solo no gana contra este display:grid */
+  .pgal[hidden]{display:none}
   .pgal{
     display:grid;grid-template-columns:1fr 1fr;
     gap:26px;
@@ -500,6 +503,62 @@
   .ps-thumbs button:hover{opacity:.75}
   .ps-thumbs button.on{opacity:1}
   .ps-thumbs img{width:100%;height:100%;object-fit:cover;display:block;background:#e6e4e0}
+
+  /* ---------- celular ----------
+     La hoja de escritorio reparte el ancho en dos: fotos a la izquierda y
+     columna de servicios a la derecha. En un teléfono no hay ancho para
+     repartir, así que todo pasa a una sola columna y lo que no cabe se
+     apila o se retira. */
+  @media (max-width:760px){
+    .sheet{inset:12px}
+
+    /* en un renglón o no entra: partido, se le monta al botón de volver */
+    .title{top:14px;font-size:10pt;white-space:nowrap}
+    /* dentro de una temática el encabezado ya es el nombre del servicio */
+    .sheet.grid-on .title{display:none}
+
+    /* la lista de servicios se acuesta contra el borde inferior y, dentro de
+       una temática, se va: ahí manda el mosaico y ya está el botón de volver */
+    .index{right:16px;bottom:54px}
+    .index .lead{font-size:9px;margin-bottom:10px}
+    .index li{font-size:11pt}
+    .sheet.grid-on .index{display:none}
+
+    .back{top:14px;right:16px;font-size:11px}
+    .transport{right:16px;bottom:14px;gap:22px}
+    .transport button{font-size:15px}   /* blanco de toque más grande */
+
+    /* el mosaico toma el ancho entero; los bloques del afiche se apilan y la
+       vista se desplaza, en vez de achicar las fotos hasta lo ilegible */
+    .gridview{padding:64px 16px 16px}
+    .gv-head{margin-right:0;margin-bottom:18px}
+    .gv-title{font-size:19pt}
+    .gv-scroll{margin-right:0;overflow-y:auto}
+
+    /* La vista de proyecto pasa a una columna y se desplaza entera. En bloque
+       y no en rejilla: con la hoja de alto fijo, las filas se achicaban por
+       debajo de su contenido y los bloques se pisaban. */
+    .psheet{padding:16px;overflow-y:auto}
+    .psheet.open{display:block}
+    .ps-head{margin:16px 0 14px}
+    .ps-head h1{font-size:22pt}
+    .ps-body{flex-direction:column;gap:18px}
+    .ps-shot{height:auto;width:100%}
+    .ps-shot img{max-height:56vh}
+    .ps-data{flex:1 1 auto;width:100%}
+    .ps-blurb{max-width:none}
+    .ps-thumbs button{width:54px;height:36px}
+
+    /* galería: una foto por renglón, con la ficha arriba */
+    .pgal{grid-template-columns:1fr;gap:16px;margin-top:16px}
+    .pgal-title{font-size:21pt;margin-bottom:18px}
+    .pgal-meta{flex-direction:column;gap:18px}
+    .pgal-desc{flex:1 1 auto}
+    /* una sola barra de desplazamiento, la de la hoja: la galería no lleva
+       la suya propia */
+    .psheet.gal-on{grid-template-rows:auto auto}
+    .pgal{overflow:visible}
+  }
 
   /* ---------- portada ----------
      Lo primero que se ve al abrir: el nombre del estudio, grande y solo en el
@@ -642,7 +701,29 @@
 
 </div>
 
+<script src="js/howler.min.js"></script>
 <script>
+/* ---------- sonidos ----------
+   Todo el audio pasa por acá. Para sumar uno: dejar el archivo en sonidos/,
+   agregarle un renglón a SONIDOS y llamarlo con sonar("sunombre").
+
+   volume va de 0 a 1. Howler se encarga de precargar, de reproducir el mismo
+   sonido varias veces encimado y de destrabar el audio en los teléfonos, que
+   no dejan sonar nada hasta el primer toque. */
+const SONIDOS = {
+  entrada: {src:"sonidos/ps2-sound.mp3", volume:0.7}
+};
+
+const sfx = {};
+for(const [nombre, o] of Object.entries(SONIDOS)){
+  sfx[nombre] = new Howl({src:[o.src], volume:o.volume ?? 1, preload:true});
+}
+// Nunca frena a la página: si un sonido falta o el navegador lo rechaza, sigue.
+function sonar(nombre){
+  const s = sfx[nombre];
+  if(s) try{ s.play(); }catch(e){}
+}
+
 // Un servicio por carpeta. `dir` es el nombre de carpeta tal cual está en
 // disco; el nombre visible puede llevar tildes y puntos que la carpeta no
 // tiene. Nombre, año y lugar de cada obra son de RELLENO: reemplazar por los
@@ -732,7 +813,11 @@ const ALL = SERVICES.flatMap(s => s.works);
 // Las carpetas llevan espacios y eñes: hay que escapar la ruta.
 const srcOf = w => encodeURI(w.dir + "/" + w.file);
 
-const COUNT = 137;             // fotogramas vivos en el riel
+// Fotogramas vivos en el riel. En un teléfono son menos: la fila es más corta
+// en pantalla y 137 láminas en movimiento le cuestan caro. Impar, para que el
+// riel tenga un centro exacto.
+const PHONE = matchMedia("(max-width:760px)").matches;
+const COUNT = PHONE ? 61 : 137;
 const HALF  = (COUNT - 1) / 2;
 
 // Espaciado d(u) = AMP*tanh(u/STEEP) + LIN*u
@@ -1019,20 +1104,30 @@ function fitMosaic(){
   if(picked < 0) return;
   const n = SERVICES[picked].works.length;
   const blocks = Math.ceil(n / GV_SLOTS.length);
-  const cols = blocks * 4;
-  // filas ocupadas: 4 si hay al menos un bloque completo, si no las del
-  // último elemento puesto (3 obras llenan sólo 3 filas)
+  const cols = stacked() ? 4 : blocks * 4;
+  // filas ocupadas: 4 por bloque, salvo el último si quedó a medias (3 obras
+  // llenan sólo 3 filas)
   let rows = 0;
   for(let i = 0; i < n; i++){
     const [, , row, rs] = gvSlot(i);
     rows = Math.max(rows, row + rs - 1);
   }
   const W = gvScroll.clientWidth, H = gvScroll.clientHeight;
-  const cell = Math.floor(Math.min(W / cols, H / (rows * CELL_RATIO)));
+  // apilado manda el ancho y la vista se desplaza; de lo contrario tiene que
+  // entrar también a lo alto
+  const cell = stacked() ? Math.floor(W / cols)
+                         : Math.floor(Math.min(W / cols, H / (rows * CELL_RATIO)));
   gvMosaic.style.gridTemplateColumns = `repeat(${cols}, ${cell}px)`;
   gvMosaic.style.gridTemplateRows    = `repeat(${rows}, ${Math.floor(cell * CELL_RATIO)}px)`;
 }
-addEventListener("resize", fitMosaic);
+// Al girar el teléfono cambia el modo (apilado o de lado), así que no alcanza
+// con recalcular la medida: hay que volver a repartir las obras.
+addEventListener("resize", () => {
+  if(projectOpen()) paintProject();   // la galería también cambia de reparto
+  if(picked < 0) return;
+  paintMosaic();
+  fitMosaic();
+});
 
 // Celdas del afiche, en un bloque de 4 filas por 4 columnas:
 // [columna, ancho, fila, alto]
@@ -1047,11 +1142,17 @@ addEventListener("resize", fitMosaic);
 // Cada 5 obras empieza un bloque nuevo, espejado respecto del anterior para
 // que la página no se lea como el mismo módulo repetido.
 const GV_SLOTS = [[1,2,1,2], [3,2,1,2], [2,1,3,1], [3,1,3,1], [3,2,4,1]];
+// En pantalla ancha los bloques se ponen uno al lado del otro y todo entra sin
+// desplazarse; en un teléfono se apilan, porque de lado quedarían ocho
+// columnas de fotos diminutas.
+const stacked = () => innerWidth <= 760;
+
 function gvSlot(n){
   const block = Math.floor(n / GV_SLOTS.length);
   let [col, cs, row, rs] = GV_SLOTS[n % GV_SLOTS.length];
   if(block % 2) col = 6 - col - cs;
-  return [block * 4 + col, cs, row, rs];
+  return stacked() ? [col, cs, block * 4 + row, rs]
+                   : [block * 4 + col, cs, row, rs];
 }
 
 function enterGrid(i){
@@ -1186,10 +1287,15 @@ function paintGallery(w, s, i){
   // Si la obra no trae memoria propia se cae a la del área, que siempre está.
   $ps("pgDesc").textContent = w.desc || s.blurb;
 
-  // La cabecera es el primer hijo de la derecha y se queda; se barren sólo las
-  // fotos de la vuelta anterior.
+  // Se barren sólo las fotos de la vuelta anterior: la cabecera se muda de
+  // columna según el caso. En dos columnas encabeza la derecha, y el desfase
+  // de alturas arma el escalonado; apilado en un teléfono va primero y las
+  // fotos la siguen en orden, si no el texto caería partiendo la serie.
+  const one = stacked();
+  const head = gal.querySelector(".pgal-head");
+  gal.querySelectorAll("figure").forEach(f => f.remove());
   colA.innerHTML = "";
-  colB.querySelectorAll("figure").forEach(f => f.remove());
+  (one ? colA : colB).prepend(head);
   shots.forEach((src, n) => {
     const fig = document.createElement("figure");
     const im = document.createElement("img");
@@ -1200,7 +1306,7 @@ function paintGallery(w, s, i){
     tag.className = "pgal-n";
     tag.textContent = String(n + 1);
     fig.append(im, tag);
-    (n % 2 ? colB : colA).appendChild(fig);
+    (one ? colA : (n % 2 ? colB : colA)).appendChild(fig);
   });
 
   gal.hidden = false;
@@ -1301,6 +1407,12 @@ function layoutIntro(){
 
 function enterSite(){
   if(!introOn()) return;
+
+  // El sonido entra con el gesto que abre la página: una tecla o un clic ya
+  // cuentan como permiso, así que el navegador no lo bloquea. Si aun así se
+  // negara, la entrada sigue igual: el audio no detiene nada.
+  sonar("entrada");
+
   intro.classList.add("out");
   intro.setAttribute("aria-hidden", "true");
 
@@ -1338,9 +1450,33 @@ addEventListener("wheel", e => {
   if(jump){ step += jump; wheeled -= jump * 120; }
 }, {passive:true});
 
+// Arrastre con el dedo: sin rueda de mouse, la fila se corre llevándola. Cada
+// 46 px de recorrido vale una foto, el mismo salto que da un tramo de rueda.
+const SWIPE = 46;
+let touchX = 0, swiped = 0;
+addEventListener("pointerdown", e => {
+  if(e.pointerType !== "touch") return;
+  touchX = e.clientX;
+  swiped = 0;
+}, {passive:true});
+addEventListener("pointermove", e => {
+  if(e.pointerType !== "touch") return;
+  if(frozen || introOn() || gridOn() || projectOpen()) return;
+  swiped -= e.clientX - touchX;      // llevar hacia la izquierda avanza
+  touchX = e.clientX;
+  const jump = Math.trunc(swiped / SWIPE);
+  if(jump){ step += jump; swiped -= jump * SWIPE; }
+}, {passive:true});
+
 addEventListener("keydown", e => {
   if(introOn()){
-    if(e.key === "Enter" || e.key === " " || e.key === "Escape"){ e.preventDefault(); enterSite(); }
+    // Cualquier tecla abre la página. Quedan afuera las que por sí solas no
+    // son una pulsación —mayúsculas, control, alt— y los atajos del navegador,
+    // para no robarle un Ctrl+T o un F5 a quien lo haya tecleado.
+    const sola = ["Shift", "Control", "Alt", "Meta", "CapsLock", "Tab"].includes(e.key);
+    if(sola || e.ctrlKey || e.metaKey || e.altKey) return;
+    e.preventDefault();
+    enterSite();
     return;
   }
   // Con la vista de proyecto abierta el teclado es suyo: Escape vuelve al riel
